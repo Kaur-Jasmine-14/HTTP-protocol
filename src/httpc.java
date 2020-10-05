@@ -100,11 +100,11 @@ public class httpc {
             }
         }
         else{
-        	boolean isJson = false;
+        	boolean flag = false;
             while((st = brr.readLine()) !=null) {
                 if(st.trim().equals("{")) 
-                	isJson = true;
-                if(isJson){
+                	flag = true;
+                if(flag){
                 System.out.println(st);
                 if(st.equals("}"))
                     break;
