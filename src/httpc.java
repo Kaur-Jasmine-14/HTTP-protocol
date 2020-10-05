@@ -1,4 +1,3 @@
-
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
@@ -61,6 +60,7 @@ public class httpc {
     	}
               else {
             	  // main user command implementation
+            	  try {
                   sendRequest(clientRequest);
                   
                   BufferedReader brr = new BufferedReader(new InputStreamReader(client.getInputStream()));
@@ -76,7 +76,11 @@ public class httpc {
                   brr.close();
     				
                   client.close();
-                 } 	    
+            	  } catch (Exception e) {
+      				System.out.println("Invalid URL. Please provide valid httpc get or httpc post URL.");
+      				continue;
+      			}
+             } 	    
          	    
 			}
             }
@@ -85,8 +89,9 @@ public class httpc {
 	private static void printResponse(BufferedReader brr, String statusCode) throws IOException {
 		// TODO Auto-generated method stub
 		System.out.println("\nOutput:\n");
+		//System.out.println(verbose);
         String st;
-        if(verbose = true){
+        if(verbose == true){
             System.out.println(statusCode);
         while((st = brr.readLine()) !=null ) {
             System.out.println(st);
@@ -95,11 +100,11 @@ public class httpc {
             }
         }
         else{
-        	boolean flag = false;
+        	boolean isJson = false;
             while((st = brr.readLine()) !=null) {
                 if(st.trim().equals("{")) 
-                flag = true;
-                if(flag){
+                	isJson = true;
+                if(isJson){
                 System.out.println(st);
                 if(st.equals("}"))
                     break;
@@ -125,15 +130,16 @@ public class httpc {
 		method = clientRequest.get(1).equals("get") ? "GET" : "POST";
 		
 		for (int i = 2; i < clientRequest.size(); i++) {
-			if (clientRequest.get(i).startsWith("http://") || clientRequest.get(i).startsWith("https://")) {     // deal with inverted commas here *******
+			if (clientRequest.get(i).startsWith("\'http://") || clientRequest.get(i).startsWith("\'https://")) {    
 				url = clientRequest.get(i);
+			    url = url.replace("\'", "");
 		}else if (clientRequest.get(i).equals("-v")) {
 			verbose = true;
 		}else if (clientRequest.get(i).equals("-h")) {
 
 			headerList.add(clientRequest.get(i + 1));
 
-		} else if (clientRequest.get(i).equals("-d")) {
+		} else if (clientRequest.get(i).equals("-d")) {    // deal with --d ????
 
 			inline = clientRequest.get(i + 1);
 
@@ -170,7 +176,7 @@ public class httpc {
 		}
         // Add host to request
 		writer.print("Host: "+host+"\r\n");
-		
+	//****************************************************************************************  POST error ???	
 		// for inline data (-d)
 	    if(clientRequest.contains("-d")) {
 	        inline = clientRequest.get(clientRequest.indexOf("-d")+1);
