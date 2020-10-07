@@ -1,3 +1,9 @@
+//-----------------------------------------------------
+//Lab Assignment 1 
+//© Jasmine Kaur, Sai Sukruth Nimmala
+//Written by: (40103309) & (40125068)
+//-----------------------------------------------------
+
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
@@ -17,20 +23,30 @@ import java.util.Scanner;
 public class httpc {
 	private static String host = "";
     private static String url = "";
-    private static String path = "";
     protected static String method = "";
-    protected static boolean verbose;
-    private static String inline = "";
-    static List<String> headerList = new ArrayList<String>();
-    private static Socket client = null;
     private static StringBuilder fileData = null;
+    private static Socket client = null;
+    private static String newLocation = "";
 
 	public static void main(String[] args) throws Exception {
-		
-    for(;;) {   
-            System.out.print("\nEnter Command: ");
-            Scanner sc = new Scanner(System.in);
-            String request = sc.nextLine();
+		 boolean redirect = false;
+		 int count = 0;
+    for(;;) {  
+    	String request; 
+    	
+    	if(redirect && count<1) {             // if(true) - execute
+    		count++;
+            System.out.println("\nRedirection done.\n");
+            System.out.println("\nRedirect to \"" + newLocation + "\"");
+    		request = "httpc get -v " + newLocation ;
+    		//redirect = false;
+    	}	
+    	else {
+    		System.out.print("\nEnter Command: ");
+            Scanner sc = new Scanner(System.in);   
+            request = sc.nextLine();	
+    	}
+    	
             ArrayList<String> clientRequest = new ArrayList<>();
             
             if(request.isEmpty()) {
@@ -61,23 +77,49 @@ public class httpc {
               else {
             	  // main user command implementation
             	  try {
-                  sendRequest(clientRequest);
-                  
+            		  
+                  boolean verbose = sendRequest(clientRequest, redirect);
+                
                   BufferedReader brr = new BufferedReader(new InputStreamReader(client.getInputStream()));
-                  String statusCode = brr.readLine();
+                  String statusCode = brr.readLine(); 
                   
+                  // check for redirection ***********
+                  String t;
+                  String[] array = statusCode.split(" ");
+          			if (array[1].contains("3")) {
+          			        redirect = true;
+          			        while ((t = brr.readLine()) != null) {
+          			        	
+          			        	 if (t.startsWith("Location:"))  {
+          		                       newLocation = t.split(" ")[1];  
+          		                        break;
+          		                    }
+          					}				  
+          			}
+          			
+          			
                   if(clientRequest.contains("-o")){
                 	  // print response to given file   ***************TODO
+                	  
+                	  if(redirect) {
+        					continue;
+        				}
                   }else {
-    					// print response in console
-    					printResponse(brr, statusCode);
-    				}
+          				// print response in console
+          				printResponse(brr, statusCode, verbose);
+          				if(redirect) {
+          					continue;
+          				}
+          			}
 
                   brr.close();
-    				
-                  client.close();
+          	      client.close();
+                  
+                  
+                  
             	  } catch (Exception e) {
-      				System.out.println("Invalid URL. Please provide valid httpc get or httpc post URL.");
+            		  System.out.println("Invalid URL. Please provide valid httpc get or httpc post URL!");
+            		  System.out.println(e);  
       				continue;
       			}
              } 	    
@@ -86,7 +128,7 @@ public class httpc {
             }
  }
 
-	private static void printResponse(BufferedReader brr, String statusCode) throws IOException {
+	private static void printResponse(BufferedReader brr, String statusCode, boolean verbose) throws IOException {
 		// TODO Auto-generated method stub
 		System.out.println("\nOutput:\n");
 		//System.out.println(verbose);
@@ -115,8 +157,13 @@ public class httpc {
 
 
 
-	private static void sendRequest(ArrayList<String> clientRequest) throws URISyntaxException, UnknownHostException, IOException{
+	private static boolean sendRequest(ArrayList<String> clientRequest, boolean redirect) throws URISyntaxException, UnknownHostException, IOException{
 		// TODO Auto-generated method stub
+		boolean verbose = false;
+		String inline = "";
+		String path = "";
+		List<String> headerList = new ArrayList<String>();
+		
 		
 		if (clientRequest.get(1).contains("get") && (clientRequest.contains("-d") || clientRequest.contains("-f"))) {
 			System.out.println("[-d] or [-f] are not allowed for GET Request");
@@ -130,7 +177,7 @@ public class httpc {
 		method = clientRequest.get(1).equals("get") ? "GET" : "POST";
 		
 		for (int i = 2; i < clientRequest.size(); i++) {
-			if (clientRequest.get(i).startsWith("\'http://") || clientRequest.get(i).startsWith("\'https://")) {    
+			if (clientRequest.get(i).startsWith("\'http://") || clientRequest.get(i).startsWith("\'https://") || clientRequest.get(i).startsWith("http://") || clientRequest.get(i).startsWith("https://")) {    
 				url = clientRequest.get(i);
 			    url = url.replace("\'", "");
 		}else if (clientRequest.get(i).equals("-v")) {
@@ -148,11 +195,16 @@ public class httpc {
 			path = clientRequest.get(i + 1);
 		}
 	}
-		
+		/**  // testing
+		System.out.println(method);
+		System.out.println(url);
+		System.out.println(verbose);
+		System.out.println(inline);		
+		**/
 		
 		URI uri = new URI(url);
 	    host = uri.getHost();
-
+	  
 		//establish connection
 		client = new Socket(host, 80);
 		OutputStream output = client.getOutputStream();
@@ -176,7 +228,7 @@ public class httpc {
 		}
         // Add host to request
 		writer.print("Host: "+host+"\r\n");
-	//****************************************************************************************  POST error ???	
+
 		// for inline data (-d)
 	    if(clientRequest.contains("-d")) {
 	        inline = clientRequest.get(clientRequest.indexOf("-d")+1);
@@ -218,5 +270,10 @@ public class httpc {
 
 		writer.flush();	    
 		
+	
+//************************************************************************
+return verbose;
+	
+	
 	}
 }
