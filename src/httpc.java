@@ -4,13 +4,7 @@
 //Written by: (40103309) & (40125068)
 //-----------------------------------------------------
 
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileReader;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.OutputStream;
-import java.io.PrintWriter;
+import java.io.*;
 import java.net.Socket;
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -80,39 +74,7 @@ public class httpc {
             		  
                   boolean verbose = sendRequest(clientRequest, redirect);
                 
-                  BufferedReader brr = new BufferedReader(new InputStreamReader(client.getInputStream()));
-                  String statusCode = brr.readLine(); 
-                  
-                  // check for redirection ***********
-                  String t;
-                  String[] array = statusCode.split(" ");
-          			if (array[1].contains("3")) {
-          			        redirect = true;
-          			        while ((t = brr.readLine()) != null) {
-          			        	
-          			        	 if (t.startsWith("Location:"))  {
-          		                       newLocation = t.split(" ")[1];  
-          		                        break;
-          		                    }
-          					}				  
-          			}
-          			
-          			
-                  if(clientRequest.contains("-o")){
-                	  // print response to given file   ***************TODO
-                	  
-                	  if(redirect) {
-        					continue;
-        				}
-                  }else {
-          				// print response in console
-          				printResponse(brr, statusCode, verbose);
-          				if(redirect) {
-          					continue;
-          				}
-          			}
 
-                  brr.close();
           	      client.close();
                   
                   
@@ -268,7 +230,83 @@ public class httpc {
 			writer.print("\r\n");
 		}
 
-		writer.flush();	    
+		writer.flush();
+
+		BufferedReader brr = new BufferedReader(new InputStreamReader(client.getInputStream()));
+		String statusCode = brr.readLine();
+
+		// check for redirection ***********
+		String str_temp;
+		String[] array = statusCode.split(" ");
+		if (array[1].contains("3")) {
+			redirect = true;
+			while ((str_temp = brr.readLine()) != null) {
+
+				if (str_temp.startsWith("Location:"))  {
+					newLocation = str_temp.split(" ")[1];
+					break;
+				}
+			}
+		}
+
+
+		if(clientRequest.contains("-o")){
+			String filePath=clientRequest.get(clientRequest.size()-1);
+
+			FileWriter file=new FileWriter(filePath,true);
+			BufferedWriter bufferWriter=new BufferedWriter(file);
+			PrintWriter printWriter1=new PrintWriter(bufferWriter);
+
+			// if request does contain 'verbose'(-v) command
+			if(clientRequest.contains("-v")){
+				printWriter1.println(statusCode);
+				while((str_temp = brr.readLine()) !=null ) {
+					printWriter1.println(str_temp);
+					if(str_temp.equals("}"))
+						break;
+				}
+			}
+			// if request does not contain 'verbose'(-v) command
+			else{
+				int flag=0;
+				while((str_temp = brr.readLine()) !=null ) {
+					if(str_temp.trim().equals("{")) flag=1;
+					if(flag==1){
+						printWriter1.println(str_temp);
+						if(str_temp.equals("}"))
+							break;
+					}
+				}
+			}
+			printWriter1.flush();
+			printWriter1.close();
+		}
+		// Printing response to the console
+		else{
+			if(clientRequest.contains("-v")){
+				System.out.println(statusCode);
+				while((str_temp = brr.readLine()) !=null ) {
+					System.out.println(str_temp);
+					if(str_temp.equals("}"))
+						break;
+				}
+			}
+			// if request does not contain 'verbose'(-v) command
+			else{
+				int flag=0;
+				while((str_temp = brr.readLine()) !=null) {
+					if(str_temp.trim().equals("{")) flag=1;
+					if(flag==1){
+						System.out.println(str_temp);
+						if(str_temp.equals("}"))
+							break;
+					}
+				}
+			}
+		}
+
+
+		brr.close();
 		
 	
 //************************************************************************
